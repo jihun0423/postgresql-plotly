@@ -1,31 +1,4 @@
-select browser, count(distinct user_id)
-from ga.ga_sess a
-join ga.ga_sess_hits b on a.sess_id = b.sess_id 
-group by browser
-
-select user_id, count(distinct sess_id)
-from ga.ga_sess
-group by user_id
-
-select * 
-from ga.ga_sess a
-join ga.orders b on a.sess_id = b.sess_id 
-join ga.ga_sess_hits c on b.sess_id = c.sess_id 
-
-
-select * from ga.orders where sess_id 
-in (select sess_id from ga.orders group by sess_id having count(*) > 2)
-
-select date_trunc('day',visit_stime), count(distinct user_id)
-from ga.ga_sess 
-group by date_trunc('day',visit_stime)
-
-
-select date_trunc('day',visit_stime), count(distinct sess_id)::float8 / count(distinct user_id)::float8
-from ga.ga_sess 
-group by date_trunc('day',visit_stime)
-
-
+-- dau,wau,mau version 1
 select :current_day, count(distinct user_id) as dau
 from ga.ga_sess
 where visit_stime >= (:current_day - interval '7 days') and visit_stime < :current_day
@@ -36,8 +9,6 @@ dau integer,
 wau integer,
 mau integer
 );
-
-
 
 insert into daily_acquisitions 
 select :current_date,
@@ -92,6 +63,9 @@ $$;
 commit;
 
 select * from daily_acquisitions 
+
+
+-- dau, wau, mau version 2
 
 create table daily_acquisitions2(
 curr_date date,
