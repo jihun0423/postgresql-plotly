@@ -86,6 +86,7 @@ count(distinct case when (action_type = '6') then a.sess_id end) num_sales
 from ga.ga_sess a left outer join ga.ga_sess_hits b using(sess_id)
 group by date_trunc('day',visit_stime)
 
+-- 일자별, 월별 세션의 매출 전환율과 매출액
 with temp_01 as(
 select order_id,user_id,sess_id, sum_revenue from ga.orders 
 left outer join
@@ -107,3 +108,21 @@ group by date_trunc('day',visit_stime)
 )
 select temp_03.*,100.0*num_sales/num_sess sales_cv_rate, sum_revenue, sum_revenue/num_sales revenue_per_perchase
 from temp_03 join temp_02 using (sess_day)
+
+-- 채널별 월별 세션의 매출 전환율과 매출액
+with temp_01 as(
+select channel_grouping, date_trunc('month',a.visit_stime) ord_month, 
+count(distinct sess_id) sess_cnt,count(distinct case when b.action_type = '6' then b.sess_id end) purchase_sess_cnt
+from ga.ga_sess a join ga.ga_sess_hits b using (sess_id)
+group by channel_grouping, date_trunc('month',a.visit_stime) 
+),
+temp_02 as(
+select channel_grouping, date_trunc('month',visit_stime) ord_month, sum(sum_revenue) sum_revenue
+from
+(select order_id,sum(prod_revenue) sum_revenue
+from ga.order_items 
+group by order_id) a join orders b using (order_id) join ga.ga_sess c using (sess_id)
+group by channel_grouping, date_trunc('month',visit_stime)
+)
+select *, round(100.0 * purchase_sess_cnt/sess_cnt,2) sales_cv_rate, round(sum_revenue::numeric/purchase_sess_cnt,2) rev_per_pur_sess
+from temp_01 a full outer join temp_02 b using (channel_grouping,ord_month)
